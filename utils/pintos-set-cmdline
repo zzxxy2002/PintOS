@@ -1,0 +1,42 @@
+#! /usr/bin/perl -w
+
+use strict;
+use Fcntl 'SEEK_SET';
+
+# Read Naiveos.pm from the same directory as this program.
+BEGIN { my $self = $0; $self =~ s%/+[^/]*$%%; require "$self/Naiveos.pm"; }
+
+# Get command-line arguments.
+usage (0) if @ARGV == 1 && $ARGV[0] eq '--help';
+usage (1) if @ARGV < 2 || $ARGV[1] ne '--';
+my ($disk, undef, @kernel_args) = @ARGV;
+
+# Open disk.
+my ($handle);
+open ($handle, '+<', $disk) or die "$disk: open: $!\n";
+
+# Check that it's a partitioned disk with a Naiveos loader.
+my ($buffer) = read_fully ($handle, $disk, 512);
+unpack ("x510 v", $buffer) == 0xaa55 or die "$disk: not a partitioned disk\n";
+$buffer =~ /Naiveos/ or die "$disk: does not contain Naiveos loader\n";
+
+# Write the command line.
+our ($LOADER_SIZE);
+sysseek ($handle, $LOADER_SIZE, SEEK_SET) == $LOADER_SIZE
+  or die "$disk: seek: $!\n";
+write_fully ($handle, $disk, make_kernel_command_line (@kernel_args));
+
+# Close disk.
+close ($handle) or die "$disk: close: $!\n";
+
+exit 0;
+
+sub usage {
+    print <<'EOF';
+Naiveos-set-cmdline, a utility for changing the command line in Naiveos disks
+Usage: Naiveos-set-cmdline DISK -- [ARGUMENT...]
+where DISK is a bootable disk containing a Naiveos loader
+  and each ARGUMENT is inserted into the command line written to DISK.
+EOF
+    exit ($_[0]);
+}
