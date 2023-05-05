@@ -1,6 +1,6 @@
 **Do not attempt to copy code/algorithm from this project. You will be flagged for plagarism and there will be consequences.**
 
-# Naive-OS
+# PintOS Version V
 Simple implementation of an operating system.
 
 ## Supported functionalities:
